@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2026 Greg Brandt <brandt.greg@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[tool.poetry]
+name = "rubbernecker"
+version = "0.1.0"
+description = "Web scraping engine"
+authors = ["Greg Brandt <brandt.greg@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+avrokit = "^0.0.1"
+beautifulsoup4 = "^4.13.4"
+seleniumbase = "^4.46.4"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.2"
+black = "^25.1.0"
+flake8 = "^7.2.0"
+pytest-env = "^1.1.5"
+faker = "^37.1.0"
+mypy = "^1.15.0"
+pytest-xdist = "^3.6.1"
+pytest-cov = "^6.1.1"
+reuse = "^6.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+rubbernecker = "rubbernecker.__main__:main"
+
+[tool.pytest.ini_options]
+addopts = "-m 'not integration'"
+markers = ["integration: mark a test as an integration test"]
+testpaths = ["tests"]
