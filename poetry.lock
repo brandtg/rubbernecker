@@ -42,14 +42,14 @@ zstandard = ["zstandard"]
 
 [[package]]
 name = "avrokit"
-version = "0.0.1"
+version = "0.0.2"
 description = "Python utilities for working with Avro data files"
 optional = false
 python-versions = "<4.0,>=3.12"
 groups = ["main"]
 files = [
-    {file = "avrokit-0.0.1-py3-none-any.whl", hash = "sha256:d17318ca885dec2cf4e2ad0ebf15a3ee02e930754af943595a2b380f08574276"},
-    {file = "avrokit-0.0.1.tar.gz", hash = "sha256:01791286ac2d64e3bf7827efc4eaf9d420d1f2d715f66840ec923e9c7f21ee04"},
+    {file = "avrokit-0.0.2-py3-none-any.whl", hash = "sha256:0c84c6affa95c444ba3729d12839f5109d356037299c78b1227e975ef3ba17ec"},
+    {file = "avrokit-0.0.2.tar.gz", hash = "sha256:65c74673ee0a6c797f59a812c1f94167b4d8e552a4183860bba5f0885a317269"},
 ]
 
 [package.dependencies]
@@ -2809,4 +2809,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "691b47e9541c2265ffc4fd6e186d987997a45c4214d86b7449397757f59a4a12"
+content-hash = "2ece85fab8d89271783fc1d7528ca1477b4b7a232b1356894a53633ade4d9618"

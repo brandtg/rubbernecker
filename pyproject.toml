@@ -4,7 +4,7 @@
 
 [tool.poetry]
 name = "rubbernecker"
-version = "0.0.1"
+version = "0.0.2"
 description = "Web scraping engine"
 authors = ["Greg Brandt <brandt.greg@gmail.com>"]
 license = "Apache-2.0"
@@ -20,7 +20,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.12"
-avrokit = "^0.0.1"
+avrokit = "^0.0.2"
 beautifulsoup4 = "^4.13.4"
 seleniumbase = "^4.46.4"
 
@@ -46,3 +46,6 @@ rubbernecker = "rubbernecker.__main__:main"
 addopts = "-m 'not integration'"
 markers = ["integration: mark a test as an integration test"]
 testpaths = ["tests"]
+
+[tool.mypy]
+ignore_missing_imports = true

@@ -35,6 +35,9 @@ typecheck:
 format:
 	poetry run black .
 
+lock:
+	poetry lock
+
 license:
 	poetry run reuse annotate \
 		--license Apache-2.0 \
