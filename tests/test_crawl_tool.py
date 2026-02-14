@@ -6,8 +6,7 @@ import json
 import os
 import tempfile
 
-import pytest
-from avrokit import avro_reader, avro_schema, avro_writer, parse_url
+from avrokit import avro_schema, avro_writer, parse_url
 
 from rubbernecker.crawl.bloomfilter import BloomFilter
 from rubbernecker.crawl.tool import CrawlTool, InputFormat
