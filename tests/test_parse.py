@@ -5,7 +5,7 @@
 import tempfile
 from pathlib import Path
 
-from avrokit import avro_schema, avro_reader, avro_writer, parse_url
+from avrokit import avro_schema, avro_records, avro_writer, parse_url
 from rubbernecker.parse.tool import ParseTool
 
 
@@ -96,13 +96,12 @@ def test_parse_with_builtin_parser() -> None:
         assert stats.count_error == 0
         assert output_url.exists()
 
-        with avro_reader(output_url.with_mode("rb")) as reader:
-            results = list(reader)
-            assert len(results) == 2
-            assert results[0]["url"] == "https://example.com"
-            assert results[0]["title"] == "Test"
-            assert "Hello" in results[0]["body_text"]
-            assert len(results[0]["headers"]) == 1
-            assert results[0]["headers"][0]["level"] == 1
-            assert results[0]["headers"][0]["text"] == "Hello"
-            assert len(results[0]["links"]) == 1
+        results = list(avro_records(output_url.with_mode("rb")))
+        assert len(results) == 2
+        assert results[0]["url"] == "https://example.com"
+        assert results[0]["title"] == "Test"
+        assert "Hello" in results[0]["body_text"]
+        assert len(results[0]["headers"]) == 1
+        assert results[0]["headers"][0]["level"] == 1
+        assert results[0]["headers"][0]["text"] == "Hello"
+        assert len(results[0]["links"]) == 1

@@ -46,3 +46,6 @@ rubbernecker = "rubbernecker.__main__:main"
 addopts = "-m 'not integration'"
 markers = ["integration: mark a test as an integration test"]
 testpaths = ["tests"]
+
+[tool.mypy]
+ignore_missing_imports = true

@@ -231,7 +231,7 @@ class CrawlTool:
                                 )
                                 # Navigate to the URL
                                 if not crawling:
-                                    driver.open(url)
+                                    driver.open(url)  # type: ignore[attr-defined]
                                 # Perform load actions if provided
                                 if load_actions:
                                     for plan in load_actions:
