@@ -10,11 +10,13 @@ from .base import Tool
 from .parse import ParseTool
 from .crawl import CrawlTool
 from .browser import ProxyTool
+from .fetch import FetchTool
 
 TOOLS: list[Tool] = [
     CrawlTool(),
     ParseTool(),
     ProxyTool(),
+    FetchTool(),
 ]
 
 
