@@ -14,14 +14,20 @@ from avrokit import (
 )
 from datetime import datetime
 from enum import Enum
-from seleniumbase import Driver
+from seleniumbase import SB
 from typing import Generator, List
 import argparse
 import logging
+import re
 import time
 import json
 from rubbernecker.crawl.bloomfilter import BloomFilter
-from .actions import CrawlActionPlan, parse_crawl_action_plans
+from .actions import (
+    CrawlActionPlan,
+    parse_crawl_action_plans,
+    crawl_action,
+    CrawlActionName,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -186,19 +192,18 @@ class CrawlTool:
         if use_bloom_filter:
             bloom_filter = self.load_bloom_filter(base_output_url)
             logger.debug("Loaded Bloom filter: %s", bloom_filter)
-        # Stats accumulator
+
         stats = CrawlToolStats()
-        # Launch Chrome using SeleniumBase Driver
-        # On Linux, SeleniumBase defaults to headless; use headed=True for visible browser
-        driver_args = {
-            "browser": "chrome",
-            "headed": not headless,
-            "no_sandbox": True,
-        }
-        if proxy_server:
-            driver_args["proxy"] = proxy_server
-        driver = Driver(**driver_args)
-        try:
+        first_request = True
+
+        with SB(
+            uc=True,
+            test=True,
+            incognito=True,
+            headless=headless,
+            proxy=proxy_server,
+            locale="en-US",
+        ) as sb:
             # Iterate over the input and output URLs
             for input_url, output_url in create_url_mapping(
                 base_input_url, base_output_url
@@ -215,12 +220,14 @@ class CrawlTool:
                             and stats.count_input % report_interval == 0
                         ):
                             logger.info("%s", stats)
+
                         # Mark the timestamp and depth
                         stats.count_input += 1
                         timestamp = int(datetime.now().timestamp())  # seconds
                         depth = 0
                         retries = 0
                         crawling = False
+
                         while True:
                             try:
                                 logger.info(
@@ -229,20 +236,33 @@ class CrawlTool:
                                     depth,
                                     retries,
                                 )
+
                                 # Navigate to the URL
                                 if not crawling:
-                                    driver.open(url)  # type: ignore[attr-defined]
+                                    if first_request:
+                                        sb.activate_cdp_mode(url)
+                                        first_request = False
+                                    elif sb.driver is None:
+                                        raise Exception(
+                                            "SeleniumBase driver is not initialized"
+                                        )
+                                    else:
+                                        sb.driver.execute_cdp_cmd(
+                                            "Page.navigate", {"url": url}
+                                        )
+
                                 # Perform load actions if provided
                                 if load_actions:
                                     for plan in load_actions:
                                         if plan.should_run(url):
-                                            plan_result = plan.run(driver)
+                                            plan_result = plan.run(sb.driver)
                                             if not plan_result:
                                                 logger.error(
                                                     "Load actions failed for URL: %s",
                                                     url,
                                                 )
                                                 break
+
                                 # Wait for the page to load
                                 if interactive:
                                     # Pause if in interactive mode
@@ -255,15 +275,17 @@ class CrawlTool:
                                 else:
                                     # Sleep between requests
                                     time.sleep(sleep_success)
+
                                 # Save the crawled data to the output URL
                                 writer.append(
                                     {
-                                        "url": driver.current_url,
+                                        "url": sb.get_current_url(),
                                         "timestamp": timestamp,
-                                        "body": driver.page_source,
+                                        "body": sb.get_page_source(),
                                     }
                                 )
                                 stats.count_output += 1
+
                                 # Check the current depth
                                 if depth >= max_depth:
                                     logger.debug(
@@ -271,6 +293,7 @@ class CrawlTool:
                                     )
                                     break
                                 depth += 1
+
                                 # Run the crawl script to see if we should continue
                                 # N.b. the action will be run and we'll expect the page to navigate to
                                 # whatever is next. If the action returns False, we should stop the crawl
@@ -279,16 +302,17 @@ class CrawlTool:
                                 if crawl_actions and crawl_actions.should_run(url):
                                     # Set the crawling flag to True so we don't reload the page
                                     crawling = True
-                                    if not crawl_actions.run(driver):
+                                    if not crawl_actions.run(sb.driver):
                                         logger.debug("Crawl finished for URL: %s", url)
                                         break
                                 else:
                                     # No crawl actions provided, just break
                                     break
                             except Exception as e:
+                                # Sleep on error if not in interactive mode
                                 if not interactive:
-                                    # Sleep on error if not in interactive mode
                                     time.sleep(sleep_error)
+
                                 # Log the error and save it to the output URL
                                 logger.error("Error crawling URL %s: %s", url, e)
                                 writer.append(
@@ -299,17 +323,17 @@ class CrawlTool:
                                     }
                                 )
                                 stats.count_error += 1
+
                                 # Check if we should exit due to errors
                                 if max_errors and stats.count_error >= max_errors:
                                     raise Exception(f"Max errors reached: {max_errors}")
+
                                 # Check if we should retry
                                 if retries >= max_retries:
                                     logger.debug(
                                         "Maximum retries reached for URL: %s", url
                                     )
                                     break
-        finally:
-            driver.quit()
         return stats
 
     def configure(self, subparsers: argparse._SubParsersAction) -> None:
@@ -356,6 +380,11 @@ class CrawlTool:
             help="Crawl action script to perform after page load",
         )
         parser.add_argument(
+            "--sleep_after_load",
+            type=float,
+            help="Sleep for N seconds after page load (shortcut for creating a load action plan)",
+        )
+        parser.add_argument(
             "--crawl_actions",
             help="Crawl action script to perform during the crawl",
         )
@@ -394,13 +423,25 @@ class CrawlTool:
         )
 
     def parse_load_actions(
-        self, actionsfile: URL | None
+        self,
+        actionsfile: URL | None,
+        sleep_after_load: float | None = None,
     ) -> List[CrawlActionPlan] | None:
+        plans: List[CrawlActionPlan] = []
+        if sleep_after_load is not None:
+            plans.append(
+                CrawlActionPlan(
+                    url_pattern=re.compile(".*"),
+                    actions=[
+                        (crawl_action(CrawlActionName.SLEEP), [str(sleep_after_load)])
+                    ],
+                )
+            )
         if actionsfile:
             with actionsfile.with_mode("r") as file:
                 script = file.read()
-                return parse_crawl_action_plans(script)
-        return None
+                plans.extend(parse_crawl_action_plans(script))
+        return plans if plans else None
 
     def parse_crawl_actions(self, actionsfile: URL | None) -> CrawlActionPlan | None:
         if actionsfile:
@@ -427,7 +468,10 @@ class CrawlTool:
             input_format=args.input_format,
             sleep_success=args.sleep_success,
             sleep_error=args.sleep_error,
-            load_actions=self.parse_load_actions(load_actions_url),
+            load_actions=self.parse_load_actions(
+                load_actions_url,
+                sleep_after_load=args.sleep_after_load,
+            ),
             crawl_actions=self.parse_crawl_actions(crawl_actions_url),
             max_depth=args.max_depth,
             max_retries=args.max_retries,
