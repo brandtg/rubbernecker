@@ -92,6 +92,37 @@ class CrawlTool:
         parsed_url = urlparse(url.lower())
         return f"{parsed_url.netloc}:{parsed_url.path}:{parsed_url.query}"
 
+    def is_driver_alive(self, driver) -> bool:
+        """
+        Check if the Selenium driver is still alive.
+
+        :param driver: The Selenium WebDriver instance.
+        :return: True if the driver is alive, False otherwise.
+        """
+        try:
+            driver.current_url
+            return True
+        except Exception:
+            return False
+
+    def restart_browser(self, sb, headless: bool, proxy_server: str | None = None):
+        """
+        Restart the Selenium browser.
+
+        :param sb: The SeleniumBase instance.
+        :param headless: Whether to run in headless mode.
+        :param proxy_server: Optional proxy server URL.
+        """
+        sb.driver.quit()
+        sb.__init__(
+            uc=True,
+            test=True,
+            incognito=True,
+            headless=headless,
+            proxy=proxy_server,
+            locale="en-US",
+        )
+
     def load_bloom_filter(self, output_url: URL) -> BloomFilter | None:
         """
         Load a Bloom filter from the output URL.
@@ -144,6 +175,8 @@ class CrawlTool:
             with input_url.with_mode("r") as file:
                 for line in file:
                     url = line.strip()
+                    if isinstance(url, bytes):
+                        url = url.decode("utf-8")
                     if not bloom_filter or not bloom_filter.check(
                         self.bloom_filter_key(url)
                     ):
@@ -154,6 +187,8 @@ class CrawlTool:
                 for line in file:
                     data = json.loads(line)
                     url = data["url"]
+                    if isinstance(url, bytes):
+                        url = url.decode("utf-8")
                     if not bloom_filter or not bloom_filter.check(
                         self.bloom_filter_key(url)
                     ):
@@ -164,6 +199,8 @@ class CrawlTool:
                 for record in reader:
                     if isinstance(record, dict) and "url" in record:
                         url = record["url"]
+                        if isinstance(url, bytes):
+                            url = url.decode("utf-8")
                         if not bloom_filter or not bloom_filter.check(
                             self.bloom_filter_key(url)
                         ):
@@ -190,8 +227,11 @@ class CrawlTool:
         # Load the Bloom filter if needed
         bloom_filter: BloomFilter | None = None
         if use_bloom_filter:
-            bloom_filter = self.load_bloom_filter(base_output_url)
-            logger.debug("Loaded Bloom filter: %s", bloom_filter)
+            try:
+                bloom_filter = self.load_bloom_filter(base_output_url)
+                logger.debug("Loaded Bloom filter: %s", bloom_filter)
+            except Exception as e:
+                logger.warning("Failed to load Bloom filter: %s", e)
 
         stats = CrawlToolStats()
         first_request = True
@@ -230,6 +270,14 @@ class CrawlTool:
 
                         while True:
                             try:
+                                # Check if browser is still alive
+                                if not self.is_driver_alive(sb.driver):
+                                    logger.warning(
+                                        "Browser died, restarting for URL: %s", url
+                                    )
+                                    first_request = True
+                                    self.restart_browser(sb, headless, proxy_server)
+
                                 logger.info(
                                     "Crawling URL: %s (depth=%d, retries=%s)",
                                     url,
@@ -250,6 +298,9 @@ class CrawlTool:
                                         sb.driver.execute_cdp_cmd(
                                             "Page.navigate", {"url": url}
                                         )
+
+                                # Wait for page to be fully loaded before capturing
+                                sb.wait_for_ready_state_complete()
 
                                 # Perform load actions if provided
                                 if load_actions:
@@ -277,9 +328,12 @@ class CrawlTool:
                                     time.sleep(sleep_success)
 
                                 # Save the crawled data to the output URL
+                                current_url = sb.get_current_url()
+                                if isinstance(current_url, bytes):
+                                    current_url = current_url.decode("utf-8")
                                 writer.append(
                                     {
-                                        "url": sb.get_current_url(),
+                                        "url": current_url,
                                         "timestamp": timestamp,
                                         "body": sb.get_page_source(),
                                     }
@@ -309,6 +363,16 @@ class CrawlTool:
                                     # No crawl actions provided, just break
                                     break
                             except Exception as e:
+                                # Check if browser died
+                                if not self.is_driver_alive(sb.driver):
+                                    logger.warning(
+                                        "Browser died during crawl, restarting: %s", e
+                                    )
+                                    first_request = True
+                                    self.restart_browser(sb, headless, proxy_server)
+                                    # Retry the same URL
+                                    continue
+
                                 # Sleep on error if not in interactive mode
                                 if not interactive:
                                     time.sleep(sleep_error)

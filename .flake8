@@ -1,2 +1,3 @@
 [flake8]
 ignore = E501,E203,W503,E704
+exclude = .git,__pycache__,docs,build,dist,.venv,.mypy_cache,.pytest_cache
