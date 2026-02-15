@@ -244,7 +244,6 @@ class CrawlTool:
             proxy=proxy_server,
             locale="en-US",
         ) as sb:
-            driver = sb.driver
             # Iterate over the input and output URLs
             for input_url, output_url in create_url_mapping(
                 base_input_url, base_output_url

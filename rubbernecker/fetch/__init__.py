@@ -3,3 +3,5 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .tool import FetchTool
+
+__all__ = ["FetchTool"]
