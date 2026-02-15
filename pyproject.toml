@@ -4,7 +4,7 @@
 
 [tool.poetry]
 name = "rubbernecker"
-version = "0.0.3"
+version = "0.0.4"
 description = "Web scraping engine"
 authors = ["Greg Brandt <brandt.greg@gmail.com>"]
 license = "Apache-2.0"
