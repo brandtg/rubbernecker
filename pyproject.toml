@@ -4,7 +4,7 @@
 
 [tool.poetry]
 name = "rubbernecker"
-version = "0.0.4"
+version = "0.0.5"
 description = "Web scraping engine"
 authors = ["Greg Brandt <brandt.greg@gmail.com>"]
 license = "Apache-2.0"
@@ -20,7 +20,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.12"
-avrokit = "^0.0.4"
+avrokit = "^0.0.5"
 beautifulsoup4 = "^4.13.4"
 seleniumbase = "^4.46.4"
 requests = "^2.32.5"
