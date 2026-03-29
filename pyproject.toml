@@ -4,7 +4,7 @@
 
 [project]
 name = "rubbernecker"
-version = "0.0.6"
+version = "0.0.7"
 description = "Web scraping engine"
 authors = [{ name = "Greg Brandt", email = "brandt.greg@gmail.com" }]
 license = { text = "Apache-2.0" }
