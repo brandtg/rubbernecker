@@ -2,8 +2,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import argparse
+import json
+import logging
+import re
+import time
+from collections.abc import Generator
 from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
 from urllib.parse import urlparse
+
 from avrokit import (
     URL,
     avro_reader,
@@ -12,21 +21,15 @@ from avrokit import (
     create_url_mapping,
     parse_url,
 )
-from datetime import datetime
-from enum import Enum
 from seleniumbase import SB
-from typing import Generator, List
-import argparse
-import logging
-import re
-import time
-import json
+
 from rubbernecker.crawl.bloomfilter import BloomFilter
+
 from .actions import (
-    CrawlActionPlan,
-    parse_crawl_action_plans,
-    crawl_action,
     CrawlActionName,
+    CrawlActionPlan,
+    crawl_action,
+    parse_crawl_action_plans,
 )
 
 logger = logging.getLogger(__name__)
@@ -136,13 +139,10 @@ class CrawlTool:
             for url in output_url.expand():
                 with avro_reader(url.with_mode("rb")) as reader:
                     for record in reader:
-                        if (
-                            isinstance(record, dict)
-                            and "url" in record
-                            and record.get("error") is None
-                        ):
-                            bloom_filter.add(self.bloom_filter_key(record["url"]))
-                            count += 1
+                        if isinstance(record, dict) and "url" in record:
+                            if record.get("error") is None:
+                                bloom_filter.add(self.bloom_filter_key(record["url"]))
+                                count += 1
             if count > 0:
                 logger.debug(
                     "Loaded %d URLs into Bloom filter from %s", count, output_url
@@ -215,7 +215,7 @@ class CrawlTool:
         input_format: InputFormat = DEFAULT_INPUT_FORMAT,
         sleep_success: int = DEFAULT_SLEEP_SUCCESS,
         sleep_error: int = DEFAULT_SLEEP_ERROR,
-        load_actions: List[CrawlActionPlan] | None = None,
+        load_actions: list[CrawlActionPlan] | None = None,
         crawl_actions: CrawlActionPlan | None = None,
         max_depth: int = DEFAULT_MAX_DEPTH,
         max_retries: int = DEFAULT_MAX_RETRIES,
@@ -490,8 +490,8 @@ class CrawlTool:
         self,
         actionsfile: URL | None,
         sleep_after_load: float | None = None,
-    ) -> List[CrawlActionPlan] | None:
-        plans: List[CrawlActionPlan] = []
+    ) -> list[CrawlActionPlan] | None:
+        plans: list[CrawlActionPlan] = []
         if sleep_after_load is not None:
             plans.append(
                 CrawlActionPlan(

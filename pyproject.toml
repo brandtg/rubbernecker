@@ -2,13 +2,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-[tool.poetry]
+[project]
 name = "rubbernecker"
-version = "0.0.5"
+version = "0.0.6"
 description = "Web scraping engine"
-authors = ["Greg Brandt <brandt.greg@gmail.com>"]
-license = "Apache-2.0"
+authors = [{ name = "Greg Brandt", email = "brandt.greg@gmail.com" }]
+license = { text = "Apache-2.0" }
 readme = "README.md"
+requires-python = ">=3.12"
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -17,36 +18,50 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+dependencies = [
+  "avrokit>=0.0.7",
+  "beautifulsoup4>=4.13.4",
+  "seleniumbase>=4.46.4",
+  "requests>=2.32.5",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-avrokit = "^0.0.5"
-beautifulsoup4 = "^4.13.4"
-seleniumbase = "^4.46.4"
-requests = "^2.32.5"
+[project.scripts]
+rubbernecker = "rubbernecker.__main__:main"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^9.0.2"
-black = "^25.1.0"
-flake8 = "^7.2.0"
-pytest-env = "^1.1.5"
-faker = "^37.1.0"
-mypy = "^1.15.0"
-pytest-xdist = "^3.6.1"
-pytest-cov = "^6.1.1"
-reuse = "^6.2.0"
+[dependency-groups]
+dev = [
+  "pytest>=9.0.2",
+  "pytest-env>=1.1.5",
+  "pytest-xdist>=3.6.1",
+  "pytest-cov>=6.1.1",
+  "faker>=37.1.0",
+  "ruff>=0.9.0",
+  "ty>=0.0.1a6",
+  "reuse>=6.2.0",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.scripts]
-rubbernecker = "rubbernecker.__main__:main"
+[tool.hatch.build.targets.wheel]
+packages = ["rubbernecker"]
 
 [tool.pytest.ini_options]
 addopts = "-m 'not integration'"
 markers = ["integration: mark a test as an integration test"]
 testpaths = ["tests"]
 
-[tool.mypy]
-ignore_missing_imports = true
+[tool.ruff]
+exclude = []
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ty.src]
+include = ["rubbernecker", "tests"]

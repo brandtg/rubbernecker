@@ -2,13 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import tempfile
-import pytest
 import os
-from avrokit import parse_url, avro_reader
+import tempfile
+
+import pytest
+from avrokit import avro_reader, parse_url
+
 from rubbernecker.crawl import CrawlTool
-from rubbernecker.crawl.tool import InputFormat
 from rubbernecker.crawl.actions import parse_crawl_action_plans
+from rubbernecker.crawl.tool import InputFormat
 from rubbernecker.parse.tool import ParseTool
 
 

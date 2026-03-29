@@ -2,10 +2,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from .base import Parser, list_parsers
-from avrokit import URL, parse_url, create_url_mapping, avro_reader, avro_writer
-from avro.schema import Schema
-from dataclasses import dataclass
 import argparse
 import importlib
 import importlib.util
@@ -14,8 +10,14 @@ import multiprocessing
 import os
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
+
+from avro.schema import Schema
+from avrokit import URL, avro_reader, avro_writer, create_url_mapping, parse_url
+
+from .base import Parser, list_parsers
 
 logger = logging.getLogger("parsetool")
 

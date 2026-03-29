@@ -5,10 +5,9 @@
 import argparse
 import asyncio
 import base64
-from dataclasses import dataclass
-import logging
 import contextlib
-from typing import Tuple
+import logging
+from dataclasses import dataclass
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 class ProxyAddress:
     host: str
     port: int
-    auth: Tuple[str, str] | None = None
+    auth: tuple[str, str] | None = None
 
     def auth_token(self) -> str | None:
         if self.auth:

@@ -4,7 +4,7 @@
 
 import hashlib
 import math
-from typing import Generator
+from collections.abc import Generator
 
 # Tuned for false positive rate of 0.1% with 1 million elements
 DEFAULT_SIZE = 15_000_000  # ~1.8 MB

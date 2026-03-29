@@ -5,9 +5,9 @@
 import tempfile
 from pathlib import Path
 
-from avrokit import avro_schema, avro_records, avro_writer, parse_url
-from rubbernecker.parse.tool import ParseTool
+from avrokit import avro_records, avro_schema, avro_writer, parse_url
 
+from rubbernecker.parse.tool import ParseTool
 
 SIMPLE_PARSER = """
 from typing import Generator

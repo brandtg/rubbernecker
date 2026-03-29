@@ -2,13 +2,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Any, Dict, Generator
-from avrokit import avro_schema
-from avro.schema import Schema
-from .base import Parser
-from bs4 import BeautifulSoup, Tag
-from urllib.parse import urlparse
 import logging
+from collections.abc import Generator
+from typing import Any, cast
+from urllib.parse import urlparse
+
+from avro.schema import Schema
+from avrokit import avro_schema
+from bs4 import BeautifulSoup, Tag
+
+from .base import Parser
 
 logger = logging.getLogger(__name__)
 
@@ -81,17 +84,17 @@ class StandardPageParser(Parser):
             }
         )
 
-    def _parse_headers(self, soup: BeautifulSoup) -> list[Dict[str, Any]]:
-        headers: list[Dict[str, Any]] = []
+    def _parse_headers(self, soup: BeautifulSoup) -> list[dict[str, Any]]:
+        headers: list[dict[str, Any]] = []
         for header in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
             if isinstance(header, Tag):
                 level = int(header.name[1])
                 headers.append({"level": level, "text": header.get_text()})
         return headers
 
-    def _parse_links(self, url: str, soup: BeautifulSoup) -> list[Dict[str, Any]]:
+    def _parse_links(self, url: str, soup: BeautifulSoup) -> list[dict[str, Any]]:
         parsed_url = urlparse(url)
-        links: list[Dict[str, Any]] = []
+        links: list[dict[str, Any]] = []
         for link in soup.find_all("a"):
             if isinstance(link, Tag):
                 href = link.get("href")
@@ -111,14 +114,15 @@ class StandardPageParser(Parser):
         if not isinstance(record, dict):
             logger.error("Record is not a dictionary: %s", record)
             return
-        soup = BeautifulSoup(record["body"], "html.parser")
+        r = cast(dict[str, Any], record)
+        soup = BeautifulSoup(r["body"], "html.parser")
         body_text = soup.body.get_text() if soup.body else None
         yield {
-            "url": record["url"],
-            "timestamp": record["timestamp"],
+            "url": r["url"],
+            "timestamp": r["timestamp"],
             "title": soup.title.get_text() if soup.title else None,
-            "content_length": len(record["body"]) if record["body"] else 0,
+            "content_length": len(r["body"]) if r["body"] else 0,
             "body_text": body_text,
             "headers": self._parse_headers(soup),
-            "links": self._parse_links(record["url"], soup),
+            "links": self._parse_links(r["url"], soup),
         }
