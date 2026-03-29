@@ -23,6 +23,7 @@ from avrokit import (
 )
 from seleniumbase import SB
 
+from rubbernecker.base import AVRO_CODEC
 from rubbernecker.crawl.bloomfilter import BloomFilter
 
 from .actions import (
@@ -249,7 +250,9 @@ class CrawlTool:
                 base_input_url, base_output_url
             ):
                 logger.info("Mapping %s to %s", input_url, output_url)
-                with avro_writer(output_url.with_mode("a+b"), SCHEMA) as writer:
+                with avro_writer(
+                    output_url.with_mode("a+b"), SCHEMA, codec=AVRO_CODEC
+                ) as writer:
                     # Execute requests
                     for url in self.load_requests(
                         input_url, input_format, bloom_filter=bloom_filter

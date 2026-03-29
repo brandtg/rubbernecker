@@ -17,6 +17,8 @@ from typing import Any, cast
 from avro.schema import Schema
 from avrokit import URL, avro_reader, avro_writer, create_url_mapping, parse_url
 
+from rubbernecker.base import AVRO_CODEC
+
 from .base import Parser, list_parsers
 
 logger = logging.getLogger("parsetool")
@@ -95,7 +97,7 @@ def writer_process(
     logger.debug("Writer process starting, expecting %d workers", num_workers)
     workers_done = 0
 
-    with avro_writer(output_url.with_mode("wb"), schema) as writer:
+    with avro_writer(output_url.with_mode("wb"), schema, codec=AVRO_CODEC) as writer:
         while workers_done < num_workers:
             msg_type, seq_id, results, task_stats = result_queue.get()
 
@@ -174,7 +176,9 @@ class ParseTool:
             # Open the input URL and output URL as Avro files
             with (
                 avro_reader(input_url.with_mode("rb")) as reader,
-                avro_writer(output_url.with_mode("wb"), parser.schema()) as writer,
+                avro_writer(
+                    output_url.with_mode("wb"), parser.schema(), codec=AVRO_CODEC
+                ) as writer,
             ):
                 for record in reader:
                     try:

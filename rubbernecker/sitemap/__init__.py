@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from .chrome import ChromeTool
-from .proxy import ProxyTool
+from .tool import SitemapTool
 
-__all__ = ["ChromeTool", "ProxyTool"]
+__all__ = ["SitemapTool"]
