@@ -2,51 +2,63 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: install env test test-all test-coverage test-coverage-al lint typecheck format build clean
+.PHONY: install test test-all test-coverage test-coverage-all lint lint-fix typecheck format build publish lock check license-check license bump clean help
 
-install:
-	poetry env use python3.12
-	poetry install --with dev
+help: ## Display this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-env:
-	poetry env use python3.12
+install: ## Install all dependencies including dev group
+	uv sync --group dev
 
-build:
-	poetry build
+build: ## Build the package
+	uv build
 
-test:
-	poetry run pytest -n 1
+publish: ## Publish the package to PyPI
+	uv publish
 
-test-all:
-	poetry run pytest -n 1 -m 'integration or not integration'
+test: ## Run tests in parallel (excluding integration)
+	uv run pytest -n auto
 
-test-coverage:
-	poetry run pytest -n 1 --cov=. --cov-report=term
+test-all: ## Run all tests including integration
+	uv run pytest -n auto -m 'integration or not integration'
 
-test-coverage-all:
-	poetry run pytest -n 1 --cov=. --cov-report=term -m 'integration or not integration'
+test-coverage: ## Run tests with coverage report (excluding integration)
+	uv run pytest -n auto --cov=. --cov-report=term
 
-lint:
-	poetry run flake8 .
+test-coverage-all: ## Run all tests with coverage report
+	uv run pytest -n auto --cov=. --cov-report=term -m 'integration or not integration'
 
-typecheck:
-	poetry run mypy .
+lint: ## Run ruff linter
+	uv run ruff check .
 
-format:
-	poetry run black .
+lint-fix: ## Run ruff linter and apply fixes
+	uv run ruff check --fix .
 
-lock:
-	poetry lock
+typecheck: ## Run type checker
+	uv run ty check
 
-license:
-	poetry run reuse annotate \
+format: ## Format code with ruff
+	uv run ruff format .
+
+bump: ## Bump version: make bump part=patch|minor|major
+	uv version --bump $(part)
+
+lock: ## Update the lockfile
+	uv lock
+
+check: lint typecheck format test license-check ## Run all checks (lint, typecheck, format, test, license-check)
+
+license-check: ## Check that all files have REUSE license headers
+	uv run reuse lint
+
+license: ## Annotate files with REUSE license headers
+	uv run reuse annotate \
 		--license Apache-2.0 \
 		--copyright "Greg Brandt <brandt.greg@gmail.com>" \
 		--skip-unrecognized \
 		--recursive .
 
-clean:
+clean: ## Remove build artifacts and caches
 	rm -rf build/ dist/ *.egg-info .pytest_cache .mypy_cache .coverage htmlcov/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete
-	poetry env remove --all 2>/dev/null || true

@@ -2,12 +2,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Dict, List, Protocol, Tuple
 import logging
 import re
 import time
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +26,14 @@ CrawlDriver = Any
 
 class CrawlAction(Protocol):
     def name(self) -> CrawlActionName: ...
-    def run(self, driver: CrawlDriver, args: List[str]) -> bool: ...
+    def run(self, driver: CrawlDriver, args: list[str]) -> bool: ...
 
 
 class SleepCrawlAction:
     def name(self) -> CrawlActionName:
         return CrawlActionName.SLEEP
 
-    def run(self, driver: CrawlDriver, args: List[str]) -> bool:
+    def run(self, driver: CrawlDriver, args: list[str]) -> bool:
         if len(args) != 1:
             raise ValueError(
                 "Sleep action requires exactly one argument: duration (seconds)"
@@ -51,7 +51,7 @@ class InputCrawlAction:
     def name(self) -> CrawlActionName:
         return CrawlActionName.INPUT
 
-    def run(self, driver: CrawlDriver, args: List[str]) -> bool:
+    def run(self, driver: CrawlDriver, args: list[str]) -> bool:
         if len(args) < 2:
             raise ValueError(
                 "Input action requires at least two arguments: selector value [value...]"
@@ -70,7 +70,7 @@ class ScrollCrawlAction:
     def name(self) -> CrawlActionName:
         return CrawlActionName.SCROLL
 
-    def run(self, driver: CrawlDriver, args: List[str]) -> bool:
+    def run(self, driver: CrawlDriver, args: list[str]) -> bool:
         if len(args) != 1:
             raise ValueError("Scroll action requires exactly one argument: amount")
         try:
@@ -86,7 +86,7 @@ class ClickCrawlAction:
     def name(self) -> CrawlActionName:
         return CrawlActionName.CLICK
 
-    def run(self, driver: CrawlDriver, args: List[str]) -> bool:
+    def run(self, driver: CrawlDriver, args: list[str]) -> bool:
         if len(args) == 0:
             raise ValueError("Click action requires selector")
         try:
@@ -103,7 +103,7 @@ class ClickIfExistsCrawlAction:
     def name(self) -> CrawlActionName:
         return CrawlActionName.CLICK_IF_EXISTS
 
-    def run(self, driver: CrawlDriver, args: List[str]) -> bool:
+    def run(self, driver: CrawlDriver, args: list[str]) -> bool:
         if len(args) == 0:
             raise ValueError("Click action requires selector")
         try:
@@ -119,7 +119,7 @@ class ClickIfExistsCrawlAction:
             return False
 
 
-ACTIONS: List[CrawlAction] = [
+ACTIONS: list[CrawlAction] = [
     SleepCrawlAction(),
     InputCrawlAction(),
     ScrollCrawlAction(),
@@ -127,7 +127,7 @@ ACTIONS: List[CrawlAction] = [
     ClickIfExistsCrawlAction(),
 ]
 
-ACTION_NAMES: Dict[CrawlActionName, CrawlAction] = {
+ACTION_NAMES: dict[CrawlActionName, CrawlAction] = {
     action.name(): action for action in ACTIONS
 }
 
@@ -145,7 +145,7 @@ def crawl_action(action_name: CrawlActionName) -> CrawlAction:
 @dataclass
 class CrawlActionPlan:
     url_pattern: re.Pattern
-    actions: List[Tuple[CrawlAction, List[str]]]
+    actions: list[tuple[CrawlAction, list[str]]]
 
     def should_run(self, url: str) -> bool:
         """
@@ -166,11 +166,11 @@ class CrawlActionPlan:
         return True
 
 
-def parse_crawl_action_plans(script: str) -> List[CrawlActionPlan]:
+def parse_crawl_action_plans(script: str) -> list[CrawlActionPlan]:
     """
     Parse a string of crawl actions into a dictionary of action names and their arguments.
     """
-    acc: List[CrawlActionPlan] = []
+    acc: list[CrawlActionPlan] = []
     cur: CrawlActionPlan | None = None
     for line in script.strip().splitlines():
         line = line.strip()

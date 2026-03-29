@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from .tool import ParseTool
 from .base import Parser
+from .tool import ParseTool
 
 __all__ = ["ParseTool", "Parser"]

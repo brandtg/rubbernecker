@@ -4,11 +4,13 @@
 
 import argparse
 import logging
-import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from urllib.parse import urlparse
+
+import requests
 from avrokit import URL, parse_url
+
 from rubbernecker.crawl.bloomfilter import BloomFilter
 
 logger = logging.getLogger("fetchtool")

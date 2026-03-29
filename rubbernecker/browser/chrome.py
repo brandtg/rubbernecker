@@ -3,12 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import argparse
-import sys
-import subprocess
-import tempfile
 import logging
-import requests
+import subprocess
+import sys
+import tempfile
 import time
+
+import requests
 
 logger = logging.getLogger(__name__)
 

@@ -4,13 +4,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import logging
 import argparse
+import logging
+
 from .base import Tool
-from .parse import ParseTool
-from .crawl import CrawlTool
 from .browser import ProxyTool
+from .crawl import CrawlTool
 from .fetch import FetchTool
+from .parse import ParseTool
 
 TOOLS: list[Tool] = [
     CrawlTool(),

@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: rubbernecker
+Upstream-Contact: Greg Brandt <brandt.greg@gmail.com>
+Source: https://github.com/brandtg/rubbernecker
+
+Files: uv.lock
+Copyright: 2026 Greg Brandt <brandt.greg@gmail.com>
+License: Apache-2.0

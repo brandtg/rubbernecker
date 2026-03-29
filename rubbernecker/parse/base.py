@@ -2,13 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Generator, cast, Type
-from avro.schema import Schema
-import sys
 import importlib
-import pkgutil
 import inspect
+import pkgutil
+import sys
 from abc import ABC, abstractmethod
+from collections.abc import Generator
+from typing import cast
+
+from avro.schema import Schema
 
 
 class Parser(ABC):
@@ -19,7 +21,7 @@ class Parser(ABC):
     def schema(self) -> Schema: ...
 
 
-def list_parsers() -> list[Type[Parser]]:
+def list_parsers() -> list[type[Parser]]:
     if not __package__:
         raise ValueError("Module name is not set. Cannot list parsers.")
     # Load all the modules to ensure that parser classes are registered
@@ -33,7 +35,7 @@ def list_parsers() -> list[Type[Parser]]:
         except Exception:
             pass  # Ignore modules that can't be imported
     # Find all classes that implement the Parser protocol
-    classes: list[Type[Parser]] = []
+    classes: list[type[Parser]] = []
     for mod in sys.modules.values():
         if mod and getattr(mod, "__name__", "").startswith(module.__name__):
             for _, obj in inspect.getmembers(mod, inspect.isclass):
@@ -43,5 +45,5 @@ def list_parsers() -> list[Type[Parser]]:
                     and issubclass(obj, Parser)
                     and obj is not Parser
                 ):
-                    classes.append(cast(Type[Parser], obj))
+                    classes.append(cast(type[Parser], obj))
     return classes

@@ -4,8 +4,10 @@
 
 import os
 import tempfile
+
 import pytest
 from avrokit import parse_url
+
 from rubbernecker.fetch import FetchTool
 
 
@@ -60,6 +62,6 @@ def test_fetch_tool_parallel():
         with open(png_path, "rb") as f:
             assert f.read()[:4] == b"\x89PNG"
 
-        with open(json_path, "r") as f:
+        with open(json_path) as f:
             content = f.read()
         assert '"slideshow"' in content

@@ -6,8 +6,8 @@ import re
 from unittest.mock import MagicMock
 
 from rubbernecker.crawl.actions import (
-    CrawlActionPlan,
     CrawlActionName,
+    CrawlActionPlan,
     crawl_action,
     parse_crawl_action_plans,
 )

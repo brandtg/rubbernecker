@@ -4,7 +4,7 @@
 
 from .browser import ChromeTool, ProxyTool
 from .crawl import CrawlTool
-from .parse import ParseTool, Parser
+from .parse import Parser, ParseTool
 
 __all__ = [
     "ChromeTool",
