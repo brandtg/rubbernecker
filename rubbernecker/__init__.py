@@ -4,9 +4,11 @@
 
 from .crawl import CrawlTool
 from .parse import Parser, ParseTool
+from .status import StatusTool
 
 __all__ = [
     "CrawlTool",
     "ParseTool",
     "Parser",
+    "StatusTool",
 ]

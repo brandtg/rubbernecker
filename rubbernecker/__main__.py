@@ -12,12 +12,14 @@ from .crawl import CrawlTool
 from .fetch import FetchTool
 from .parse import ParseTool
 from .sitemap import SitemapTool
+from .status import StatusTool
 
 TOOLS: list[Tool] = [
     CrawlTool(),
     ParseTool(),
     FetchTool(),
     SitemapTool(),
+    StatusTool(),
 ]
 
 
