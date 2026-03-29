@@ -10,6 +10,7 @@ Rubbernecker currently operates exclusively via a CLI — users must manually in
 The Admin Server is a lightweight, local Flask web application that provides a read-only monitoring and introspection dashboard over a user-specified root directory containing rubbernecker crawl artifacts. It surfaces crawl status, dataset metadata, and light data previews without requiring the user to leave their browser.
 
 **Primary goals:**
+
 - Give operators a single-pane-of-glass view of all datasets in a working directory
 - Surface the output of `rubbernecker status` in a human-friendly UI
 - Allow light introspection of Avro data (schema, record count, sample records) without needing the CLI
@@ -32,6 +33,7 @@ A Flask application (`rubbernecker/server/`) is started with a single argument: 
 The server is **read-only** (no crawl launching) and **stateless** by default — it derives all information from the filesystem at request time. An optional `db.sqlite` file may be introduced in the root directory if features require caching or derived data (e.g., historical rate snapshots), but only if driven by a concrete feature need.
 
 **Intended UX:**
+
 1. User runs `rubbernecker server --root /path/to/datasets`
 2. Browser opens to `http://localhost:5000`
 3. Dashboard lists all discovered datasets with status summary cards
@@ -132,10 +134,24 @@ The server is **read-only** (no crawl launching) and **stateless** by default �
 
 - **Open Questions:**
   - [ ] What is the naming convention users follow for input URL files alongside output Avro files? (e.g., same stem, or a fixed name like `urls.txt`?) This drives auto-detection logic.
-  - [ ] Should the server support a `--port` flag, or always bind to `localhost:5000`?
-  - [ ] Should the sample records view support filtering or searching, or is read-only pagination sufficient for v1?
-  - [ ] Is there a preference for a specific HTML templating approach (Jinja2 built into Flask, or a minimal JS frontend)?
-  - [ ] Should the server be accessible on the local network (0.0.0.0) or loopback only (127.0.0.1) by default?
+
+The file will be named `urls.txt`, `urls.jsonl`, or `urls.avro` and must be in the same directory as the output Avro file. Similarly, the Avro file with the crawl output will be `pages.avro`. This convention allows for straightforward auto-detection: if `pages.avro` is found, look for `urls.*` in the same directory to pair it as a crawl dataset.
+
+- [ ] Should the server support a `--port` flag, or always bind to `localhost:5000`?
+
+Allow a --port flag, and let's default to 7707 to avoid conflicts with other local services. So the server would bind to `localhost:7707` by default, but users can specify a different port if needed.
+
+- [ ] Should the sample records view support filtering or searching, or is read-only pagination sufficient for v1?
+
+Read only pagination is sufficient. I just want to see the schema and a sample of records to verify the data looks correct.
+
+- [ ] Is there a preference for a specific HTML templating approach (Jinja2 built into Flask, or a minimal JS frontend)?
+
+Jinja2 is fine for v1.
+
+- [ ] Should the server be accessible on the local network (0.0.0.0) or loopback only (127.0.0.1) by default?
+
+Loopback only (but allow binding to local network via a `--host` flag if needed).
 
 ## 7. Revisions
 
