@@ -3,7 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import argparse
+import os
 from typing import Protocol
+
+AVRO_CODEC = os.environ.get("AVRO_CODEC", "deflate")
 
 
 class Tool(Protocol):

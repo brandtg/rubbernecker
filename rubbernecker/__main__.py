@@ -8,16 +8,16 @@ import argparse
 import logging
 
 from .base import Tool
-from .browser import ProxyTool
 from .crawl import CrawlTool
 from .fetch import FetchTool
 from .parse import ParseTool
+from .sitemap import SitemapTool
 
 TOOLS: list[Tool] = [
     CrawlTool(),
     ParseTool(),
-    ProxyTool(),
     FetchTool(),
+    SitemapTool(),
 ]
 
 

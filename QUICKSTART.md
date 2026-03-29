@@ -54,7 +54,7 @@ EOF
 Run Rubbernecker to crawl your URLs and save the raw HTML:
 
 ```bash
-poetry run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro
+uv run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro
 ```
 
 You'll see output like:
@@ -78,7 +78,7 @@ INFO:CrawlToolStats(count_input=2, count_output=2, count_error=0) (done)
 Extract structured information from the raw HTML:
 
 ```bash
-poetry run rubbernecker parse rubbernecker.parse.standard.StandardPageParser \
+uv run rubbernecker parse rubbernecker.parse.standard.StandardPageParser \
     tmp/output-raw.avro tmp/output-parsed.avro
 ```
 
@@ -94,7 +94,7 @@ This uses the built-in `StandardPageParser` to extract:
 See what you scraped by converting the Avro file to JSON:
 
 ```bash
-poetry run avrokit tojson tmp/output-parsed.avro | head -50
+uv run avrokit tojson tmp/output-parsed.avro | head -50
 ```
 
 You'll see JSON output like:
@@ -114,7 +114,7 @@ You'll see JSON output like:
 **Pretty print with jq (optional):**
 
 ```bash
-poetry run avrokit tojson tmp/output-parsed.avro | jq '.'
+uv run avrokit tojson tmp/output-parsed.avro | jq '.'
 ```
 
 ## What Next?
@@ -124,7 +124,7 @@ poetry run avrokit tojson tmp/output-parsed.avro | jq '.'
 By default, Rubbernecker runs with a visible Chrome window so you can supervise the crawl. For automated/background crawling, enable headless mode:
 
 ```bash
-poetry run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro --headless
+uv run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro --headless
 ```
 
 ### Follow Links Automatically
@@ -133,7 +133,7 @@ Crawl deeper by following links (depth-based crawling):
 
 ```bash
 # Follow links up to 2 levels deep
-poetry run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro --max_depth 2
+uv run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro --max_depth 2
 ```
 
 **Warning:** This can generate a lot of requests. Start with `--max_depth 1` to test.
@@ -154,17 +154,11 @@ EOF
 Then use it during crawling:
 
 ```bash
-poetry run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro \
+uv run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro \
     --load_actions tmp/actions.txt
 ```
 
 ## Troubleshooting
-
-### "Chrome connection refused" errors
-
-- Rubbernecker automatically starts Chrome, but if you see this error, another process may be using port 9222
-- Check if port 9222 is in use: `lsof -i :9222`
-- Try a different port: `poetry run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro --chrome_debug_port 9223`
 
 ### Empty or corrupted output
 
@@ -187,6 +181,7 @@ poetry run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro \
 
 ## Learn More
 
-- Full command reference: [README.md](../README.md)
-- Advanced usage (proxies, custom parsers, action scripts): [README.md](../README.md#advanced-usage)
-- Available parsers and output formats: [README.md](../README.md#output-formats)
+- Full command reference: [README.md](README.md)
+- Advanced crawl usage: [docs/commands/crawl.md](docs/commands/crawl.md)
+- Action scripts: [docs/actions.md](docs/actions.md)
+- Output formats and Avro schemas: [docs/output-formats.md](docs/output-formats.md)
