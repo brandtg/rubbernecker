@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Greg Brandt <brandt.greg@gmail.com>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # PRD: Rubbernecker Admin Server
 
 **Date:** 2026-03-29

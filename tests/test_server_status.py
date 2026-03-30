@@ -86,7 +86,8 @@ def test_get_status_result_avro_input():
             for e in entries:
                 w.append(e)
         _write_pages_avro(
-            output_path, [_make_page(entries[j]["url"], 1000 + j) for j in range(3)]
+            output_path,
+            [_make_page(str(entries[j]["url"]), 1000 + j) for j in range(3)],
         )
         result = get_status_result(input_path, output_path)
         assert result is not None

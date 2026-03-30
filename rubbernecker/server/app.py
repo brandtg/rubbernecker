@@ -37,6 +37,7 @@ def create_app(root: str) -> Flask:
         directory = next((d for d in directories if d.rel_path == rel_path), None)
         if directory is None:
             abort(404)
+            return  # unreachable, but helps type narrowing
         status_result = None
         if directory.is_crawl_dataset and directory.input_url_path:
             pages_path = os.path.join(directory.path, "pages.avro")
