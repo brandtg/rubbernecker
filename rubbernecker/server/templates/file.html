@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ rel_path }} — Rubbernecker Admin</title>
+  <style>
+    body { font-family: monospace; max-width: 1400px; margin: 2em auto; padding: 0 1em; }
+    h1, h2 { border-bottom: 1px solid #ccc; }
+    pre { background: #f8f8f8; border: 1px solid #ddd; padding: 1em; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 1em; overflow-x: auto; display: block; }
+    th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; white-space: nowrap; }
+    th { background: #f5f5f5; }
+    .pagination { margin: 1em 0; }
+    .pagination a { margin-right: 1em; }
+    a { color: #2266cc; }
+  </style>
+</head>
+<body>
+  <p><a href="javascript:history.back()">&larr; Back</a></p>
+  <h1>{{ rel_path }}</h1>
+
+  <h2>Schema</h2>
+  {% if schema_json %}
+  <pre><code>{{ schema_json }}</code></pre>
+  {% else %}
+  <p>Schema unavailable.</p>
+  {% endif %}
+
+  <h2>Records (offset={{ offset }}, limit={{ limit }})</h2>
+
+  {% if records %}
+  <table>
+    <tr>
+      {% for key in records[0].keys() %}
+      <th>{{ key }}</th>
+      {% endfor %}
+    </tr>
+    {% for record in records %}
+    <tr>
+      {% for value in record.values() %}
+      <td>{{ value | string | truncate(200) }}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table>
+
+  <div class="pagination">
+    {% if offset > 0 %}
+    <a href="?offset={{ [offset - limit, 0] | max }}&limit={{ limit }}">&larr; Previous</a>
+    {% endif %}
+    {% if has_more %}
+    <a href="?offset={{ offset + limit }}&limit={{ limit }}">Next &rarr;</a>
+    {% endif %}
+  </div>
+  {% else %}
+  <p>No records at this offset.</p>
+  {% endif %}
+</body>
+</html>

@@ -11,6 +11,7 @@ from .base import Tool
 from .crawl import CrawlTool
 from .fetch import FetchTool
 from .parse import ParseTool
+from .server.tool import ServerTool
 from .sitemap import SitemapTool
 from .status import StatusTool
 
@@ -20,6 +21,7 @@ TOOLS: list[Tool] = [
     FetchTool(),
     SitemapTool(),
     StatusTool(),
+    ServerTool(),
 ]
 
 
