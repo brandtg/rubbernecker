@@ -136,3 +136,23 @@ def test_directory_detail_route_404():
         with app.test_client() as client:
             resp = client.get("/dir/nonexistent")
             assert resp.status_code == 404
+
+
+def test_directory_detail_route_degraded_no_urls_companion():
+    """pages.avro exists but no urls.* companion — should show degraded record count view."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        sub = os.path.join(tmpdir, "crawl_nourls")
+        os.makedirs(sub)
+        pages_path = os.path.join(sub, "pages.avro")
+        _write_pages_avro(
+            pages_path,
+            [_make_page(f"https://example.com/{i}", 1000 + i) for i in range(4)],
+        )
+        app = create_app(root=tmpdir)
+        with app.test_client() as client:
+            resp = client.get("/dir/crawl_nourls")
+            assert resp.status_code == 200
+            body = resp.data.decode("utf-8")
+            assert "Crawl Status" in body
+            assert "No input URL file found" in body
+            assert "4" in body  # record count visible

@@ -60,11 +60,11 @@ The server is **read-only** (no crawl launching). All state derives from the fil
 
 **Acceptance Criteria:**
 
-- [ ] Server discovers all `.avro` files under `--root` recursively
-- [ ] Datasets are listed on the index page with filename, record count, and last-modified timestamp
-- [ ] A directory containing `pages.avro` + `urls.txt` / `urls.jsonl` / `urls.avro` is classified as a crawl dataset and enables the status view
-- [ ] Directories with multiple `.avro` files are grouped as a pipeline
-- [ ] Discovery is performed at request time (no background polling)
+- [x] Server discovers all `.avro` files under `--root` recursively
+- [x] Datasets are listed on the index page with filename, record count, and last-modified timestamp
+- [x] A directory containing `pages.avro` + `urls.txt` / `urls.jsonl` / `urls.avro` is classified as a crawl dataset and enables the status view
+- [x] Directories with multiple `.avro` files are grouped as a pipeline
+- [x] Discovery is performed at request time (no background polling)
 
 ### Crawl Status View
 
@@ -72,11 +72,11 @@ The server is **read-only** (no crawl launching). All state derives from the fil
 
 **Acceptance Criteria:**
 
-- [ ] Displays total input URLs, processed count, successes, errors, and remaining
-- [ ] Displays overall pages/sec rate and recent (rolling window) pages/sec rate
-- [ ] Displays crawl start time, last record time, and ETA
-- [ ] Handles in-progress crawls gracefully (partial Avro file is readable without crashing)
-- [ ] Falls back gracefully if no companion input file is found (shows record count only)
+- [x] Displays total input URLs, processed count, successes, errors, and remaining
+- [x] Displays overall pages/sec rate and recent (rolling window) pages/sec rate
+- [x] Displays crawl start time, last record time, and ETA
+- [x] Handles in-progress crawls gracefully (partial Avro file is readable without crashing)
+- [ ] Falls back gracefully if no companion input file is found (shows record count only) *(failing — section is hidden entirely when no `urls.*` companion exists; see [Future Work](#future-work))*
 
 ### Avro File Introspection
 
@@ -84,11 +84,11 @@ The server is **read-only** (no crawl launching). All state derives from the fil
 
 **Acceptance Criteria:**
 
-- [ ] Schema view shows the Avro schema as formatted JSON
-- [ ] Record count is displayed (using `avrokit CountTool` for efficiency on large files)
-- [ ] Sample view shows the first N records (default: 25) as an HTML table with schema fields as columns
-- [ ] Offset-based pagination controls allow browsing forward and backward through records
-- [ ] Records are streamed from disk; the full file is never loaded into memory
+- [x] Schema view shows the Avro schema as formatted JSON
+- [x] Record count is displayed (using `avrokit CountTool` for efficiency on large files)
+- [x] Sample view shows the first N records (default: 25) as an HTML table with schema fields as columns
+- [x] Offset-based pagination controls allow browsing forward and backward through records
+- [x] Records are streamed from disk; the full file is never loaded into memory
 
 ### Pipeline Stage View
 
@@ -96,10 +96,10 @@ The server is **read-only** (no crawl launching). All state derives from the fil
 
 **Acceptance Criteria:**
 
-- [ ] Files in the same directory are grouped under a pipeline view on the directory detail page
-- [ ] Each stage shows its filename, Avro schema name, and record count
-- [ ] Record count delta between adjacent stages is surfaced (e.g., parse failures, enrichment additions)
-- [ ] Stage order is determined by file modification time when no explicit convention applies
+- [x] Files in the same directory are grouped under a pipeline view on the directory detail page
+- [x] Each stage shows its filename, Avro schema name, and record count
+- [x] Record count delta between adjacent stages is surfaced (e.g., parse failures, enrichment additions)
+- [x] Stage order is determined by file modification time when no explicit convention applies
 
 ## 5. Implementation Phases
 
@@ -437,7 +437,60 @@ The server is **read-only** (no crawl launching). All state derives from the fil
 - **`test_schema_name_populated_in_discovery`**: Write a real Avro file with `PAGE_SCHEMA`. Call `discover_directories`. Assert the `AvroFileInfo` has `schema_name="Page"`.
 - **`test_schema_name_cached`**: Write a real Avro file, call `discover_directories` twice. Patch the avro reader to assert the file is only opened once (second call reads from cache).
 
-## 6. Considerations
+## 7. Future Work
+
+The following gaps were identified during the initial implementation audit. They are punted from v1 but should be addressed before the server is recommended for production use.
+
+### Path Traversal Guard on `/file/` Route
+
+**Problem:** `app.py` validates that the resolved path `isfile` and ends with `.avro`, but does not verify the resolved absolute path is contained within `--root`. A crafted `rel_path` containing `../` segments could serve a valid Avro file located outside the root directory.
+
+**Proposed fix:** After computing `abs_path = os.path.join(root, rel_path)`, assert that `os.path.commonpath([root, abs_path]) == os.path.realpath(root)`. Return HTTP 400 or 404 if the check fails.
+
+**Acceptance Criteria:**
+- [ ] `/file/` route rejects any `rel_path` that resolves outside `--root` with HTTP 404
+- [ ] Test: construct a symlink or `../` path that points outside root and assert 404
+
+---
+
+### Pre-format Timestamps in the View Layer
+
+**Problem:** `directory.html` calls `status_result._format_ts(...)` directly from Jinja2. This couples the template to the internal API of `StatusToolResult`, making the template fragile and untestable in isolation.
+
+**Proposed fix:** Pre-format `first_timestamp` and `last_timestamp` in the route handler (or in a thin view-model dataclass) before passing them to the template. Expose `formatted_start`, `formatted_last` as plain strings in the template context.
+
+**Acceptance Criteria:**
+- [ ] `directory.html` no longer calls any Python method directly; all values are pre-formatted strings
+- [ ] Template test (or route test) can verify timestamp display without importing `StatusToolResult`
+
+---
+
+### Offset Cap on `/file/` Pagination
+
+**Problem:** `get_records_page(path, offset, limit)` iterates through `offset` records on every request to seek to the desired position. There is no upper bound on `offset` or `limit`; a large `offset` on a multi-million-record file will cause a long-running request that blocks the server thread.
+
+**Proposed fix:** Add configurable caps (e.g., `MAX_OFFSET = 100_000`, `MAX_LIMIT = 500`) enforced in the route handler before calling `get_records_page`. Return HTTP 400 with an explanatory message if the cap is exceeded.
+
+**Acceptance Criteria:**
+- [ ] Requests with `offset` > `MAX_OFFSET` return HTTP 400
+- [ ] Requests with `limit` > `MAX_LIMIT` are clamped or rejected
+- [ ] Caps are defined as module-level constants in `app.py` (not magic numbers)
+
+---
+
+### Remove Dead Code: `AvroFileInfo.from_row`
+
+**Problem:** `AvroFileInfo.from_row()` is defined in `models.py` (per PRD spec) but never called. Cache deserialization is performed inline in `discovery.py` by directly constructing field values from the row tuple. The dead method adds noise and misleads readers into thinking it is the canonical deserialization path.
+
+**Proposed fix:** Either remove `from_row` from `AvroFileInfo` and update the PRD spec to reflect this, or update `discovery.py` to actually call it for consistency with `DirectoryInfo` and the stated design intent.
+
+**Acceptance Criteria:**
+- [ ] No dead `from_row` method exists, OR `discovery.py` calls `AvroFileInfo.from_row` for all cache deserialization
+- [ ] Section 6 ("Considerations") updated to reflect the chosen approach
+
+---
+
+## 8. Considerations
 
 - **Data modeling:** All server-side models use `@dataclass`, consistent with the rest of the rubbernecker codebase. No Pydantic dependency is introduced. SQLite rows are deserialized via `@classmethod from_row(cls, row: tuple)` on each dataclass for full type-checker coverage.
 
@@ -453,10 +506,11 @@ The server is **read-only** (no crawl launching). All state derives from the fil
   - `sqlite3` — standard library; caches derived data (record counts, mtimes) in `db.sqlite` under `--root`
   - `rubbernecker.status.tool.StatusTool` — reused as a library for crawl status computation
 
-## 7. Revisions
+## 9. Revisions
 
 | Date       | Author      | Changes                                              |
 | ---------- | ----------- | ---------------------------------------------------- |
 | 2026-03-29 | Greg Brandt | Initial draft                                        |
 | 2026-03-29 | Greg Brandt | Resolved open questions; promoted to Review status   |
 | 2026-03-29 | Greg Brandt | Expanded phases into step-by-step playbook with tests |
+| 2026-03-29 | Greg Brandt | Post-implementation audit: marked AC checkboxes; fixed AC 10 (degraded crawl view), mtime formatting; added Future Work section |

@@ -42,7 +42,7 @@ SPDX-License-Identifier: Apache-2.0
         <tr>
           <td><a href="/file/{{ file.rel_path }}">{{ file.rel_path }}</a></td>
           <td>{{ file.record_count if file.record_count is not none else "—" }}</td>
-          <td>{{ file.mtime | int | string }}</td>
+          <td>{{ file.mtime | datetimeformat }}</td>
         </tr>
         {% endfor %}
       </table>

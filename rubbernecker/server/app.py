@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+from datetime import datetime, timezone
 
 from flask import Flask, abort, current_app, render_template, request
 
@@ -17,6 +18,16 @@ def create_app(root: str) -> Flask:
     @app.template_filter("basename")
     def _basename(path: str) -> str:
         return os.path.basename(path)
+
+    @app.template_filter("datetimeformat")
+    def _datetimeformat(ts: float) -> str:
+        """Format a Unix timestamp as a human-readable UTC datetime string."""
+        try:
+            return datetime.fromtimestamp(ts, tz=timezone.utc).strftime(
+                "%Y-%m-%d %H:%M:%S UTC"
+            )
+        except Exception:
+            return str(ts)
 
     @app.route("/")
     def index():
@@ -39,9 +50,17 @@ def create_app(root: str) -> Flask:
             abort(404)
             return  # unreachable, but helps type narrowing
         status_result = None
+        pages_record_count = None
+        pages_file = next(
+            (f for f in directory.files if os.path.basename(f.path) == "pages.avro"),
+            None,
+        )
         if directory.is_crawl_dataset and directory.input_url_path:
             pages_path = os.path.join(directory.path, "pages.avro")
             status_result = get_status_result(directory.input_url_path, pages_path)
+        elif pages_file is not None:
+            # pages.avro exists but no urls.* companion — show degraded view
+            pages_record_count = pages_file.record_count
         from rubbernecker.server.pipeline import compute_deltas, order_pipeline_stages
 
         ordered_files = order_pipeline_stages(directory.files)
@@ -50,6 +69,7 @@ def create_app(root: str) -> Flask:
             "directory.html",
             directory=directory,
             status_result=status_result,
+            pages_record_count=pages_record_count,
             ordered_files=ordered_files,
             deltas=deltas,
         )
