@@ -5,11 +5,14 @@
 import json
 import os
 import tempfile
+from unittest.mock import MagicMock
 
+import pytest
 from avrokit import avro_schema, avro_writer, parse_url
+from selenium.common.exceptions import TimeoutException
 
 from rubbernecker.crawl.bloomfilter import BloomFilter
-from rubbernecker.crawl.tool import CrawlTool, InputFormat
+from rubbernecker.crawl.tool import CrawlTool, InputFormat, SeleniumDriver
 
 
 class TestCrawlToolBloomFilterKey:
@@ -172,3 +175,79 @@ class TestCrawlToolStats:
         assert stats.count_input == 10
         assert stats.count_output == 8
         assert stats.count_error == 2
+
+
+class TestSeleniumDriver:
+    def _mock_chrome(self, monkeypatch) -> tuple[list, list]:
+        """Patch webdriver.Chrome to record options and return MagicMocks."""
+        created_options: list = []
+        created_drivers: list = []
+
+        def fake_chrome(options=None):
+            mock_driver = MagicMock()
+            created_options.append(options)
+            created_drivers.append(mock_driver)
+            return mock_driver
+
+        monkeypatch.setattr("rubbernecker.crawl.tool.webdriver.Chrome", fake_chrome)
+        return created_options, created_drivers
+
+    def test_default_options(self, monkeypatch):
+        created_options, created_drivers = self._mock_chrome(monkeypatch)
+        driver = SeleniumDriver()
+        assert created_options[0].arguments == ["--incognito", "--lang=en-US"]
+        assert created_drivers[0] is driver.driver
+
+    def test_headless_and_proxy_options(self, monkeypatch):
+        created_options, _ = self._mock_chrome(monkeypatch)
+        SeleniumDriver(headless=True, proxy_server="http://localhost:3128")
+        args = created_options[0].arguments
+        assert "--headless=new" in args
+        assert "--proxy-server=http://localhost:3128" in args
+
+    def test_activate_cdp_mode(self, monkeypatch):
+        _, created_drivers = self._mock_chrome(monkeypatch)
+        driver = SeleniumDriver()
+        mock_driver = created_drivers[0]
+        driver.activate_cdp_mode("https://example.com/")
+        mock_driver.execute_cdp_cmd.assert_called_once_with(
+            "Page.navigate", {"url": "https://example.com/"}
+        )
+
+    def test_wait_for_ready_state_complete(self, monkeypatch):
+        _, created_drivers = self._mock_chrome(monkeypatch)
+        driver = SeleniumDriver()
+        mock_driver = created_drivers[0]
+        mock_driver.execute_script.return_value = "complete"
+        driver.wait_for_ready_state_complete(timeout=1)
+
+    def test_wait_for_ready_state_complete_timeout(self, monkeypatch):
+        _, created_drivers = self._mock_chrome(monkeypatch)
+        driver = SeleniumDriver()
+        mock_driver = created_drivers[0]
+        mock_driver.execute_script.return_value = "loading"
+        with pytest.raises(TimeoutException):
+            driver.wait_for_ready_state_complete(timeout=0.1)
+
+    def test_quit_ignores_errors_and_is_idempotent(self, monkeypatch):
+        _, created_drivers = self._mock_chrome(monkeypatch)
+        driver = SeleniumDriver()
+        mock_driver = created_drivers[0]
+        mock_driver.quit.side_effect = Exception("already dead")
+        driver.quit()
+        assert driver.driver is None
+        driver.quit()
+
+    def test_restart_creates_new_driver(self, monkeypatch):
+        created_options, created_drivers = self._mock_chrome(monkeypatch)
+        driver = SeleniumDriver(headless=True)
+        driver.restart()
+        assert created_drivers[0] is not created_drivers[1]
+        assert driver.driver is created_drivers[1]
+        assert len(created_options) == 2
+
+    def test_context_manager_quits(self, monkeypatch):
+        self._mock_chrome(monkeypatch)
+        with SeleniumDriver() as driver:
+            pass
+        assert driver.driver is None

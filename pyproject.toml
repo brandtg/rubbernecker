@@ -4,7 +4,7 @@
 
 [project]
 name = "rubbernecker"
-version = "0.0.8"
+version = "0.0.9"
 description = "Web scraping engine"
 authors = [{ name = "Greg Brandt", email = "brandt.greg@gmail.com" }]
 license = { text = "Apache-2.0" }
@@ -21,7 +21,7 @@ classifiers = [
 dependencies = [
   "avrokit>=0.0.7",
   "beautifulsoup4>=4.13.4",
-  "seleniumbase>=4.46.4",
+  "selenium>=4.52",
   "requests>=2.32.5",
 ]
 
@@ -38,6 +38,7 @@ dev = [
   "ruff>=0.9.0",
   "ty>=0.0.1a6",
   "reuse>=6.2.0",
+  "seleniumbase>=4.57.1",
 ]
 
 [build-system]

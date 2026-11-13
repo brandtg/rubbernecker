@@ -21,7 +21,10 @@ from avrokit import (
     create_url_mapping,
     parse_url,
 )
-from seleniumbase import SB
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.support.ui import WebDriverWait
 
 from rubbernecker.base import AVRO_CODEC
 from rubbernecker.crawl.bloomfilter import BloomFilter
@@ -73,6 +76,7 @@ DEFAULT_SLEEP_ERROR: int = 10
 DEFAULT_MAX_DEPTH: int = 0
 DEFAULT_MAX_RETRIES: int = 0
 DEFAULT_REPORT_INTERVAL: int = 100
+DEFAULT_PAGE_LOAD_TIMEOUT: int = 30
 
 
 @dataclass
@@ -80,6 +84,106 @@ class CrawlToolStats:
     count_input: int = 0
     count_output: int = 0
     count_error: int = 0
+
+
+class SeleniumDriver:
+    """
+    Setup/teardown wrapper around a Selenium Chrome WebDriver.
+
+    Provides the small set of browser conveniences used by the crawl loop:
+    CDP-based navigation, a ready-state wait, and access to the current URL
+    and page source. ChromeDriver is resolved automatically by Selenium
+    Manager.
+
+    :param headless: Whether to run Chrome in headless mode.
+    :param proxy_server: Optional proxy server URL.
+    """
+
+    def __init__(self, headless: bool = False, proxy_server: str | None = None):
+        self.headless = headless
+        self.proxy_server = proxy_server
+        self.driver = self._create_driver()
+
+    def __enter__(self) -> "SeleniumDriver":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.quit()
+
+    def _create_driver(self) -> WebDriver:
+        options = ChromeOptions()
+        options.add_argument("--incognito")
+        options.add_argument("--lang=en-US")
+        if self.headless:
+            options.add_argument("--headless=new")
+        if self.proxy_server:
+            options.add_argument(f"--proxy-server={self.proxy_server}")
+        return webdriver.Chrome(options=options)
+
+    def quit(self) -> None:
+        """
+        Quit the driver, ignoring errors if the browser is already dead.
+
+        :return: None
+        """
+        if self.driver is None:
+            return
+        try:
+            self.driver.quit()
+        except Exception as e:
+            logger.debug("Ignoring error while quitting driver: %s", e)
+        self.driver = None
+
+    def restart(self) -> None:
+        """
+        Quit and relaunch the browser with the same configuration.
+
+        :return: None
+        """
+        self.quit()
+        self.driver = self._create_driver()
+
+    def activate_cdp_mode(self, url: str) -> None:
+        """
+        Navigate to the URL using the Chrome DevTools Protocol.
+
+        :param url: The URL to navigate to.
+        :return: None
+        """
+        assert self.driver is not None, "Driver has been quit"
+        self.driver.execute_cdp_cmd("Page.navigate", {"url": url})
+
+    def wait_for_ready_state_complete(
+        self, timeout: float = DEFAULT_PAGE_LOAD_TIMEOUT
+    ) -> None:
+        """
+        Wait until the document reaches the "complete" ready state.
+
+        :param timeout: Maximum time to wait, in seconds.
+        :return: None
+        """
+        assert self.driver is not None, "Driver has been quit"
+        WebDriverWait(self.driver, timeout).until(
+            lambda d: d.execute_script("return document.readyState") == "complete"
+        )
+
+    def get_current_url(self) -> str:
+        """
+        Get the URL of the current page.
+
+        :return: The current URL.
+        """
+        assert self.driver is not None, "Driver has been quit"
+        return self.driver.current_url
+
+    def get_page_source(self) -> str:
+        """
+        Get the source of the current page.
+
+        :return: The page source.
+        """
+        assert self.driver is not None, "Driver has been quit"
+        return self.driver.page_source
 
 
 class CrawlTool:
@@ -109,23 +213,13 @@ class CrawlTool:
         except Exception:
             return False
 
-    def restart_browser(self, sb, headless: bool, proxy_server: str | None = None):
+    def restart_browser(self, driver: SeleniumDriver) -> None:
         """
         Restart the Selenium browser.
 
-        :param sb: The SeleniumBase instance.
-        :param headless: Whether to run in headless mode.
-        :param proxy_server: Optional proxy server URL.
+        :param driver: The SeleniumDriver wrapper.
         """
-        sb.driver.quit()
-        sb.__init__(
-            uc=True,
-            test=True,
-            incognito=True,
-            headless=headless,
-            proxy=proxy_server,
-            locale="en-US",
-        )
+        driver.restart()
 
     def load_bloom_filter(self, output_url: URL) -> BloomFilter | None:
         """
@@ -235,16 +329,11 @@ class CrawlTool:
                 logger.warning("Failed to load Bloom filter: %s", e)
 
         stats = CrawlToolStats()
-        first_request = True
 
-        with SB(
-            uc=True,
-            test=True,
-            incognito=True,
+        with SeleniumDriver(
             headless=headless,
-            proxy=proxy_server,
-            locale="en-US",
-        ) as sb:
+            proxy_server=proxy_server,
+        ) as driver:
             # Iterate over the input and output URLs
             for input_url, output_url in create_url_mapping(
                 base_input_url, base_output_url
@@ -274,12 +363,11 @@ class CrawlTool:
                         while True:
                             try:
                                 # Check if browser is still alive
-                                if not self.is_driver_alive(sb.driver):
+                                if not self.is_driver_alive(driver.driver):
                                     logger.warning(
                                         "Browser died, restarting for URL: %s", url
                                     )
-                                    first_request = True
-                                    self.restart_browser(sb, headless, proxy_server)
+                                    self.restart_browser(driver)
 
                                 logger.info(
                                     "Crawling URL: %s (depth=%d, retries=%s)",
@@ -290,26 +378,20 @@ class CrawlTool:
 
                                 # Navigate to the URL
                                 if not crawling:
-                                    if first_request:
-                                        sb.activate_cdp_mode(url)
-                                        first_request = False
-                                    elif sb.driver is None:
+                                    if driver.driver is None:
                                         raise Exception(
-                                            "SeleniumBase driver is not initialized"
+                                            "Selenium driver is not initialized"
                                         )
-                                    else:
-                                        sb.driver.execute_cdp_cmd(
-                                            "Page.navigate", {"url": url}
-                                        )
+                                    driver.activate_cdp_mode(url)
 
                                 # Wait for page to be fully loaded before capturing
-                                sb.wait_for_ready_state_complete()
+                                driver.wait_for_ready_state_complete()
 
                                 # Perform load actions if provided
                                 if load_actions:
                                     for plan in load_actions:
                                         if plan.should_run(url):
-                                            plan_result = plan.run(sb.driver)
+                                            plan_result = plan.run(driver.driver)
                                             if not plan_result:
                                                 logger.error(
                                                     "Load actions failed for URL: %s",
@@ -331,14 +413,14 @@ class CrawlTool:
                                     time.sleep(sleep_success)
 
                                 # Save the crawled data to the output URL
-                                current_url = sb.get_current_url()
+                                current_url = driver.get_current_url()
                                 if isinstance(current_url, bytes):
                                     current_url = current_url.decode("utf-8")
                                 writer.append(
                                     {
                                         "url": current_url,
                                         "timestamp": timestamp,
-                                        "body": sb.get_page_source(),
+                                        "body": driver.get_page_source(),
                                     }
                                 )
                                 stats.count_output += 1
@@ -359,7 +441,7 @@ class CrawlTool:
                                 if crawl_actions and crawl_actions.should_run(url):
                                     # Set the crawling flag to True so we don't reload the page
                                     crawling = True
-                                    if not crawl_actions.run(sb.driver):
+                                    if not crawl_actions.run(driver.driver):
                                         logger.debug("Crawl finished for URL: %s", url)
                                         break
                                 else:
@@ -367,12 +449,11 @@ class CrawlTool:
                                     break
                             except Exception as e:
                                 # Check if browser died
-                                if not self.is_driver_alive(sb.driver):
+                                if not self.is_driver_alive(driver.driver):
                                     logger.warning(
                                         "Browser died during crawl, restarting: %s", e
                                     )
-                                    first_request = True
-                                    self.restart_browser(sb, headless, proxy_server)
+                                    self.restart_browser(driver)
                                     # Retry the same URL
                                     continue
 

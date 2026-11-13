@@ -20,7 +20,7 @@ class CrawlActionName(Enum):
     CLICK_IF_EXISTS = "CLICK_IF_EXISTS"
 
 
-# Type alias for SeleniumBase Driver
+# Type alias for Selenium WebDriver
 CrawlDriver = Any
 
 
@@ -157,7 +157,7 @@ class CrawlActionPlan:
         """
         Run the actions on the given driver.
 
-        :param driver: The SeleniumBase driver to run the actions on.
+        :param driver: The Selenium driver to run the actions on.
         :return: True if the actions were run successfully, False otherwise.
         """
         for action, args in self.actions:
