@@ -6,3 +6,7 @@ Source: https://github.com/brandtg/rubbernecker
 Files: uv.lock
 Copyright: 2026 Greg Brandt <brandt.greg@gmail.com>
 License: Apache-2.0
+
+Files: .python-version
+Copyright: 2026 Greg Brandt <brandt.greg@gmail.com>
+License: Apache-2.0

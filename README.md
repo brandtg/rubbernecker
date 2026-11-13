@@ -57,6 +57,19 @@ uv sync
 
 See [QUICKSTART.md](QUICKSTART.md) for a step-by-step tutorial.
 
+## Stealth Crawling
+
+Targets with bot protection (Cloudflare/Imperva-class) can be crawled with
+`--driver stealth`, which masks common automation fingerprints
+(`navigator.webdriver`, chromedriver's `cdc_*` variables, and a JavaScript
+evasion pack). This is best-effort only — see
+[docs/stealth.md](docs/stealth.md) for what it does, its limits, and the
+fallback path if a target still blocks you.
+
+```bash
+uv run rubbernecker crawl tmp/urls.txt tmp/output.avro --driver stealth
+```
+
 ## Commands
 
 | Command | Description |
@@ -69,6 +82,7 @@ See [QUICKSTART.md](QUICKSTART.md) for a step-by-step tutorial.
 ## Documentation
 
 - [Action Scripts](docs/actions.md) — Automate page interactions during crawls
+- [Stealth Crawling](docs/stealth.md) — Best-effort evasion of bot detection
 - [Output Formats](docs/output-formats.md) — Avro schemas for all command outputs
 - [Development](docs/development.md) — Testing, linting, and build commands
 

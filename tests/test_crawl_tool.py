@@ -189,7 +189,7 @@ class TestSeleniumDriver:
             created_drivers.append(mock_driver)
             return mock_driver
 
-        monkeypatch.setattr("rubbernecker.crawl.tool.webdriver.Chrome", fake_chrome)
+        monkeypatch.setattr("rubbernecker.crawl.driver.webdriver.Chrome", fake_chrome)
         return created_options, created_drivers
 
     def test_default_options(self, monkeypatch):

@@ -127,6 +127,21 @@ By default, Rubbernecker runs with a visible Chrome window so you can supervise 
 uv run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro --headless
 ```
 
+### Crawl Bot-Protected Sites
+
+Some sites (Cloudflare/Imperva-class) block automated browsers. The `stealth`
+driver masks the common fingerprints — `navigator.webdriver`, chromedriver's
+`cdc_*` variables, and a JavaScript evasion pack (window.chrome, plugins,
+languages, permissions, WebGL):
+
+```bash
+uv run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro --driver stealth
+```
+
+This is best-effort only and can still be detected; if a target keeps
+blocking you, the fallback path is undetected-chromedriver's UC mode (see
+[docs/stealth.md](docs/stealth.md) for the tradeoffs and how to wire it in).
+
 ### Follow Links Automatically
 
 Crawl deeper by following links (depth-based crawling):
@@ -184,4 +199,5 @@ uv run rubbernecker crawl tmp/requests.txt tmp/output-raw.avro \
 - Full command reference: [README.md](README.md)
 - Advanced crawl usage: [docs/commands/crawl.md](docs/commands/crawl.md)
 - Action scripts: [docs/actions.md](docs/actions.md)
+- Stealth crawling: [docs/stealth.md](docs/stealth.md)
 - Output formats and Avro schemas: [docs/output-formats.md](docs/output-formats.md)
