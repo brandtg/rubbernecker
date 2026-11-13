@@ -31,6 +31,8 @@ uv run rubbernecker crawl [OPTIONS] INPUT_URL OUTPUT_URL
 - `--use_bloom_filter` - Skip duplicate URLs (useful for large crawls)
 - `--max_errors N` - Stop after N errors
 - `--interactive` - Prompt before each crawl action
+- `--proxy_server URL` - Proxy server URL (e.g., `http://localhost:3128`)
+- `--driver DRIVER` - Browser driver: `selenium` (default) or `stealth` for best-effort evasion of bot detection (see [stealth.md](../stealth.md))
 
 ## Examples
 
@@ -51,6 +53,9 @@ uv run rubbernecker crawl tmp/urls.txt tmp/output.avro \
     --max_retries 3 \
     --max_errors 10 \
     --sleep_error 5
+
+# Crawl a bot-protected target with best-effort stealth
+uv run rubbernecker crawl tmp/urls.txt tmp/output.avro --driver stealth
 ```
 
 ## Full Pipeline Example
