@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Rubbernecker
 
-A web scraping engine built with Python and SeleniumBase that crawls web pages,
+A web scraping engine built with Python and Selenium that crawls web pages,
 stores raw HTML, and parses structured data. Supports configurable page actions
 and depth-based crawling.
 

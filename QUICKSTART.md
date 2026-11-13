@@ -33,7 +33,7 @@ Run the setup command:
 make install
 ```
 
-This will install all required packages including SeleniumBase, avrokit, and other dependencies using Poetry.
+This will install all required packages including Selenium, avrokit, and other dependencies using uv.
 
 ### 2. Create Your First URL List
 
